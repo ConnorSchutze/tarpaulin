@@ -28,7 +28,7 @@ def get_course(course_id):
     pass
 
 @bp.route('/<int:course_id>', methods=['PATCH'])
-def create_course():
+def update_course():
     """
     Partially updates a course.\n
     Protection: Admin only
