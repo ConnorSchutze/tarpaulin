@@ -1,0 +1,6 @@
+runtime: python311
+
+# Handlers
+handlers:
+- url: /.*
+  script: auto
