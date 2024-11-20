@@ -93,27 +93,36 @@ def get_user(id):
 
     }
 
-    # admin & students
-    query = client.query(kind="users")
-    query.add_filter("sub", "=", sub)
-    result = list(query.fetch())
+    user = client.get(key=client.key("users", id))
 
+    if user is None:
+        return no_user()
+    
+    role = user.get("role")
+    user_sub = user.get("sub")
+
+    permission_error = permission(sub, user_sub)
+    if permission_error:
+        return permission_error
+    
     result_data.update({
-        "id": result.key.id,
-        "role": result.get("role"),
-        "sub": result.get("sub")
+        "id": id,
+        "role": role,
+        "sub": user_sub
     })
 
-    roles = ["admin", "students"]
+    # admin & students
 
-    if result.get("role") in roles:
+    roles = ["admin", "student"]
+
+    if role in roles:
         return (jsonify(result_data), 200)
 
     # instructors
     courses = []
 
     query = client.query(kind="courses")
-    query.add_filter("instructor_id", "=", result.key.id)
+    query.add_filter("instructor_id", "=", id)
     results = list(query.fetch())
 
     for r in results:

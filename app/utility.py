@@ -86,6 +86,9 @@ def attribute_check(attributes, data):
 def user_pass_check():
     return ERROR["unauthorized"]
 
+def no_user():
+    return ERROR["found"]
+
 def jwt_invalid(request):
     try:
         payload = verify_jwt(request)
@@ -94,12 +97,15 @@ def jwt_invalid(request):
     except AuthError:
         return [ERROR["unauthorized"], True]
 
-def permission(sub):
+def permission(sub, sub2=None):
     query = client.query(kind="users")
     query.add_filter("sub", "=", sub)
     results = list(query.fetch())
     for result in results:
         if result.get("role") == "admin":
             return None
+        
+    if sub == sub2:
+        return None
         
     return ERROR["permission"]
