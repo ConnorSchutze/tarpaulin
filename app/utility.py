@@ -109,3 +109,10 @@ def permission(sub, sub2=None):
         return None
         
     return ERROR["permission"]
+
+def role_check(id, role="admin"):
+    user = client.get(key=client.key("users", id))
+    if user.get("role") != role:
+        return ERROR["invalid"]
+    
+    return None
