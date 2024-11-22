@@ -65,7 +65,46 @@ def get_courses():
     course enrollment.\n
     Protection: Unprotected
     """
-    pass
+    # extract pagination data
+    offset = int(request.args.get("offset", 0))
+    limit = int(request.args.get("limit", 3))
+
+    # query courses
+    query = client.query(kind="courses")
+    query.order = ["subject"]
+    courses_result = query.fetch(offset=offset, limit=limit)
+
+    # generate result
+    courses =[]
+    for course in courses_result:
+        course_data = {
+            "id": course.key.id,
+            "instructor_id": course["instructor_id"],
+            "number": course["number"],
+            "subject": course["subject"],
+            "term": course["term"],
+            "title": course["title"],
+            "self": f"{request.host_url}courses/{course.key.id}"
+        }
+        courses.append(course_data)
+
+    response = {
+        "courses": courses
+    }
+
+    # determine pagination limits
+    query = client.query(kind="courses")
+    total_count = len(list(query.fetch()))
+    next_offset = offset + limit
+    next_url = None
+    if next_offset < total_count:
+        next_url = f"{request.host_url}courses?offset={next_offset}&limit={limit}"
+    
+    # create response
+    if next_url:
+        response.update({"next": next_url})
+    
+    return jsonify(response), 200
 
 @bp.route('/<int:id>', methods=['GET'])
 def get_course(id):
