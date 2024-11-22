@@ -112,7 +112,24 @@ def get_course(id):
     Gets a course based on id. Doesn't return info on course enrollment.\n
     Protection: Unprotected
     """
-    pass
+    course = client.get(key=client.key("courses", id))
+
+    # 404 error
+    if course is None:
+        return no_result()
+    
+    response = {
+        "id": course.key.id,
+        "instructor_id": course.get("instructor_id"),
+        "number": course.get("number"),
+        "subject": course.get("subject"),
+        "term": course.get("term"),
+        "title": course.get("title"),
+        "self": f"{request.host_url}courses/{course.key.id}"
+    }
+
+    return (jsonify(response), 200)
+
 
 @bp.route('/<int:id>', methods=['PATCH'])
 def update_course(id):

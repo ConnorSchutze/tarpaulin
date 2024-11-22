@@ -96,7 +96,7 @@ def get_user(id):
     user = client.get(key=client.key("users", id))
 
     if user is None:
-        return no_user()
+        return no_result()
     
     role = user.get("role")
     user_sub = user.get("sub")

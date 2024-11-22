@@ -86,7 +86,7 @@ def attribute_check(attributes, data):
 def user_pass_check():
     return ERROR["unauthorized"]
 
-def no_user():
+def no_result():
     return ERROR["found"]
 
 def jwt_invalid(request):
