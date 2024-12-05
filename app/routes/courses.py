@@ -137,7 +137,48 @@ def update_course(id):
     Partially updates a course.\n
     Protection: Admin only
     """
-    pass
+    sub = jwt_invalid(request)
+    # 401 error
+    if sub[1]:
+        return sub[0]
+    # 403 error
+    else:
+        permission_error = permission(sub[0])
+        if permission_error:
+            return permission_error
+
+    data = request.get_json()
+
+    course = client.get(key=client.key("courses", id))
+
+    # 403 error
+    if course is None:
+        return no_id_found()
+    
+    # 400 error
+    if "instructor_id" in data:
+        user_error = invalid_user(data["instructor_id"])
+        if user_error:
+            return user_error
+    
+    updatable_fields = ["subject", "number", "title", "term", "instructor_id"]
+    for field in updatable_fields:
+        if field in data:
+            course.update({f"{field}": data[f"{field}"]})
+    
+    client.put(course)
+
+    response = {
+        "id": course.key.id,
+        "instructor_id": course.get("instructor_id"),
+        "number": course.get("number"),
+        "subject": course.get("subject"),
+        "term": course.get("term"),
+        "title": course.get("title"),
+        "self": f"{request.host_url}courses/{course.key.id}"
+    }
+
+    return (jsonify(response), 200)
 
 @bp.route('/<int:id>', methods=['DELETE'])
 def delete_course(id):

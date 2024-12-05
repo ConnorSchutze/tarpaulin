@@ -83,11 +83,22 @@ def attribute_check(attributes, data):
         
     return None
 
+def invalid_user(id, expected_role="instructor"):
+    user = client.get(key=client.key("users", id))
+    if user:
+        if user.get("role") == expected_role:
+            return None
+    
+    return ERROR["invalid"]
+
 def user_pass_check():
     return ERROR["unauthorized"]
 
 def no_result():
     return ERROR["found"]
+
+def no_id_found():
+    return ERROR["permission"]
 
 def jwt_invalid(request):
     try:
