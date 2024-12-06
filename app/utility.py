@@ -127,3 +127,6 @@ def role_check(id, role="admin"):
         return ERROR["invalid"]
     
     return None
+
+def missing():
+    return ERROR["invalid"]

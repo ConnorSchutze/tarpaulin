@@ -1,6 +1,9 @@
 import requests
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, send_file
+from google.cloud import storage
 from app.utility import *
+
+AVATAR_BUCKET = "cs-tarpaulin"
 
 bp = Blueprint('users', __name__, url_prefix='/users')
 
@@ -89,9 +92,14 @@ def get_user(id):
         sub = sub[0]
     
     # avatar
-    result_data = {
+    result_data = {}
 
-    }
+    storage_client = storage.Client()
+    bucket = storage_client.get_bucket(AVATAR_BUCKET)
+    blob = bucket.blob(f"users/{id}/avatar.png")
+
+    if blob.exists():
+        result_data["avatar_url"] = f"{request.host_url}users/{id}/avatar"
 
     user = client.get(key=client.key("users", id))
 
@@ -127,3 +135,67 @@ def get_user(id):
 
     for r in results:
         courses.append(r.key.id)
+    
+    result_data.update({
+        "courses": courses
+    })
+
+    return (jsonify(result_data), 200)
+
+@bp.route('/<int:id>/avatar', methods=['POST'])
+def create_avatar(id):
+    """
+    Create/update a user's avatar.
+    Protection: User with JWT matching id
+    """
+    if 'file' not in request.files:
+        return missing()
+
+    sub = jwt_invalid(request)
+    # 401 error
+    if sub[1]:
+        return sub[0]
+
+    sub = sub[0]
+
+    user = client.get(key=client.key("users", id))
+
+    if user is None:
+        return no_result()
+    
+    user_sub = user.get("sub")
+
+    if sub != user_sub:
+        return no_id_found()
+    
+    file_obj = request.files['file']
+
+    storage_client = storage.Client()
+    bucket = storage_client.get_bucket(AVATAR_BUCKET)
+    blob = bucket.blob(f"users/{id}/avatar.png")
+    file_obj.seek(0)
+    blob.upload_from_file(file_obj)
+
+    blob_url = f"{request.host_url}users/{id}/avatar"
+
+    response_data = {
+        "avatar_url": blob_url
+    }
+
+    return response_data, 200
+
+
+
+@bp.route('/<int:id>/avatar', methods=['GET'])
+def get_avatar(id):
+    """
+    Gets an avatar based on user id.
+    Protection: User with JWT matching id
+    """
+
+@bp.route('/<int:id>/avatar', methods=['DELETE'])
+def delete_avatar(id):
+    """
+    Delete an avatar based on user id.
+    Protection: User with JWT matching id
+    """
