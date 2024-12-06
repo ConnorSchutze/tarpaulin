@@ -8,7 +8,8 @@ ERROR = {
     "invalid": ({"Error": "The request body is invalid"}, 400),
     "unauthorized": ({"Error": "Unauthorized"}, 401),
     "permission": ({"Error": "You don't have permission on this resource"}, 403),
-    "found": ({"Error": "Not found"}, 404)
+    "found": ({"Error": "Not found"}, 404),
+    "data": ({"Error": "Enrollment data is invalid"}, 409)
 }
 
 def verify_jwt(request):
@@ -130,3 +131,6 @@ def role_check(id, role="admin"):
 
 def missing():
     return ERROR["invalid"]
+
+def enrollment_invalid():
+    return ERROR["data"]

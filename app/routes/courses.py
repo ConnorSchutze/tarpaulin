@@ -57,7 +57,6 @@ def create_course():
         "self": course_url
     }), 201
 
-
 @bp.route('', methods=['GET'])
 def get_courses():
     """
@@ -129,7 +128,6 @@ def get_course(id):
     }
 
     return (jsonify(response), 200)
-
 
 @bp.route('/<int:id>', methods=['PATCH'])
 def update_course(id):
@@ -206,3 +204,85 @@ def delete_course(id):
     client.delete(course_key)
 
     return ("", 204)
+
+
+@bp.route('/<int:id>/students', methods=['PATCH'])
+def update_enrollment(id):
+    """
+    Enroll and/or disenroll students from a course.\n
+    Protection: Admin or instructor of course
+    """
+    sub = jwt_invalid(request)
+    # 401 error
+    if sub[1]:
+        return sub[0]
+
+    sub = sub[0]
+    
+    course_key = client.key("courses", id)
+    course = client.get(key=course_key)
+
+    if course is None:
+        return no_id_found()
+
+    # 403 error
+    instructor_id = course.get("instructor_id")
+
+    query = client.query(kind="users")
+    query.add_filter("sub", "=", sub)
+    results = list(query.fetch())
+    for result in results:
+        if result.get("role") != "admin" and result.get("id") != instructor_id:
+            print(f"id: {result.get("id")} - iid: {instructor_id}")
+            return no_id_found()
+
+    data = request.get_json()
+
+    required_attributes = ["add", "remove"]
+
+    # 400 error (not need in api doc)
+    validation_error = attribute_check(required_attributes, data)
+    if validation_error:
+        return validation_error
+
+    add = data["add"]
+    remove = data["remove"]
+
+    for user_id in add:
+        # 409 error - i
+        if user_id in remove:
+            return enrollment_invalid()
+        
+        user = client.get(key=client.key("users", user_id))
+
+        # 409 error - ii
+        if user is None or user.get("role") != "student":
+            return enrollment_invalid()
+        
+        enrollment_key = client.key("enrollments", user_id)
+        enrollment = client.get(key=enrollment_key)
+
+        # don't add if already there
+        if enrollment is None:
+            new_enrollment = datastore.Entity(key=client.key("enrollments"))
+            new_enrollment.update({
+                "course_id": id,
+                "student_id": user_id
+            })
+            client.put(new_enrollment)
+    
+    for user_id in remove:
+        user = client.get(key=client.key("users", user_id))
+
+        # 409 error - ii
+        if user is None or user.get("role") != "student":
+            return enrollment_invalid()
+        
+        enrollment_key = client.key("enrollments", user_id)
+        enrollment = client.get(key=enrollment_key)
+
+        # don't remove if not there
+        if enrollment:
+            client.delete(enrollment_key)
+        
+    return ("", 200)
