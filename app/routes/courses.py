@@ -161,6 +161,7 @@ def update_course(id):
         if user_error:
             return user_error
     
+    # update fields
     updatable_fields = ["subject", "number", "title", "term", "instructor_id"]
     for field in updatable_fields:
         if field in data:
