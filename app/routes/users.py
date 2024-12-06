@@ -231,3 +231,33 @@ def delete_avatar(id):
     Delete an avatar based on user id.
     Protection: User with JWT matching id
     """
+    sub = jwt_invalid(request)
+    # 401 error
+    if sub[1]:
+        return sub[0]
+    
+    sub = sub[0]
+
+    user = client.get(key=client.key("users", id))
+
+    # 404 error
+    if user is None:
+        return no_result()
+    
+    user_sub = user.get("sub")
+
+    # 403 error
+    if sub != user_sub:
+        return no_id_found()
+
+    storage_client = storage.Client()
+    bucket = storage_client.get_bucket(AVATAR_BUCKET)
+    blob = bucket.blob(f"users/{id}/avatar.png")
+
+    # 404 error
+    if not blob.exists():
+        return no_result()
+
+    blob.delete()
+
+    return ("", 204)
