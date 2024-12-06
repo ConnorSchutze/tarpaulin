@@ -187,4 +187,22 @@ def delete_course(id):
     Deletes a course and enrollment info.\n
     Protection: Admin only
     """
-    pass
+    sub = jwt_invalid(request)
+    # 401 error
+    if sub[1]:
+        return sub[0]
+    # 403 error
+    else:
+        permission_error = permission(sub[0])
+        if permission_error:
+            return permission_error
+    
+    course_key = client.key("courses", id)
+    course = client.get(key=course_key)
+
+    if course is None:
+        return no_id_found()
+    
+    client.delete(course_key)
+
+    return ("", 204)
