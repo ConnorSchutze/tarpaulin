@@ -232,8 +232,7 @@ def update_enrollment(id):
     query.add_filter("sub", "=", sub)
     results = list(query.fetch())
     for result in results:
-        if result.get("role") != "admin" and result.get("id") != instructor_id:
-            print(f"id: {result.get("id")} - iid: {instructor_id}")
+        if result.get("role") != "admin" and result.key.id != instructor_id:
             return no_id_found()
 
     data = request.get_json()
