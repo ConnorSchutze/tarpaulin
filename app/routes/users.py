@@ -1,4 +1,5 @@
 import requests
+import io
 from flask import Blueprint, request, jsonify, current_app, send_file
 from google.cloud import storage
 from app.utility import *
@@ -192,6 +193,37 @@ def get_avatar(id):
     Gets an avatar based on user id.
     Protection: User with JWT matching id
     """
+    sub = jwt_invalid(request)
+    # 401 error
+    if sub[1]:
+        return sub[0]
+    
+    sub = sub[0]
+
+    user = client.get(key=client.key("users", id))
+
+    if user is None:
+        return no_result()
+    
+    user_sub = user.get("sub")
+
+    # 403 error
+    if sub != user_sub:
+        return no_id_found()
+    
+    storage_client = storage.Client()
+    bucket = storage_client.get_bucket(AVATAR_BUCKET)
+    blob = bucket.blob(f"users/{id}/avatar.png")
+
+    # 404 error
+    if not blob.exists():
+        return no_result()
+
+    file_obj = io.BytesIO()
+    blob.download_to_file(file_obj)
+    file_obj.seek(0)
+    
+    return send_file(file_obj, mimetype='image/x-png', download_name="avatar.png")
 
 @bp.route('/<int:id>/avatar', methods=['DELETE'])
 def delete_avatar(id):
