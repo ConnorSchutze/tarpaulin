@@ -203,6 +203,13 @@ def delete_course(id):
     
     client.delete(course_key)
 
+    query = client.query(kind="enrollments")
+    query.add_filter("course_id", "=", id)
+    results = list(query.fetch())
+    for result in results:
+        enrollment_key = client.key("enrollments", result.key.id)
+        client.delete(enrollment_key)
+
     return ("", 204)
 
 

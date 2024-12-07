@@ -122,24 +122,34 @@ def get_user(id):
 
     # admin & students
 
-    roles = ["admin", "student"]
-
-    if role in roles:
+    if role == "admin":
         return (jsonify(result_data), 200)
 
-    # instructors
+    # instructors & students
     courses = []
 
-    query = client.query(kind="courses")
-    query.add_filter("instructor_id", "=", id)
-    results = list(query.fetch())
+    if role == "instructor":
+        query = client.query(kind="courses")
+        query.add_filter("instructor_id", "=", id)
+        results = list(query.fetch())
 
-    for r in results:
-        courses.append(r.key.id)
-    
-    result_data.update({
-        "courses": courses
-    })
+        for r in results:
+            courses.append(r.key.id)
+        
+        result_data.update({
+            "courses": courses
+        })
+    elif role == "student":
+        query = client.query(kind="enrollments")
+        query.add_filter("student_id", "=", id)
+        results = list(query.fetch())
+
+        for r in results:
+            courses.append(r.key.id)
+        
+        result_data.update({
+            "courses": courses
+        })
 
     return (jsonify(result_data), 200)
 
