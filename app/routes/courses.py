@@ -277,11 +277,51 @@ def update_enrollment(id):
         if user is None or user.get("role") != "student":
             return enrollment_invalid()
         
-        enrollment_key = client.key("enrollments", user_id)
-        enrollment = client.get(key=enrollment_key)
-
-        # don't remove if not there
-        if enrollment:
+        query = client.query(kind="enrollments")
+        query.add_filter("student_id", "=", user_id)
+        results = list(query.fetch())
+        for result in results:
+            enrollment_key = client.key("enrollments", result.key.id)
             client.delete(enrollment_key)
         
     return ("", 200)
+
+@bp.route('/<int:id>/students', methods=['GET'])
+def get_enrollments(id):
+    """
+    Get the list of students enrolled in a course.
+    Protection: Admin or instructor of course
+    """
+    sub = jwt_invalid(request)
+    # 401 error
+    if sub[1]:
+        return sub[0]
+
+    sub = sub[0]
+    
+    course_key = client.key("courses", id)
+    course = client.get(key=course_key)
+
+    if course is None:
+        return no_id_found()
+
+    # 403 error
+    instructor_id = course.get("instructor_id")
+
+    query = client.query(kind="users")
+    query.add_filter("sub", "=", sub)
+    results = list(query.fetch())
+    for result in results:
+        if result.get("role") != "admin" and result.key.id != instructor_id:
+            return no_id_found()
+    
+    response = []
+
+    e_query = client.query(kind="enrollments")
+    e_query.add_filter("course_id", "=", course.key.id)
+    results = list(e_query.fetch())
+    for student in results:
+        student_id = student.get("student_id")
+        response.append(student_id)
+    
+    return jsonify(response), 200
